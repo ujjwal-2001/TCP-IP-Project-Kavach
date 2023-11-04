@@ -30,7 +30,7 @@ auth_data = {
 }
 
 # Define server address and port
-server_address = ('10.114.240.86', 12345)
+server_address = ('localhost', 12345)
 
 # Create a socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,8 +67,10 @@ def authenticate(client_socket):
         # Check if the received password matches the stored password
         if auth_data[username] == decrypted_password:
             client_socket.send(b"Authentication successful.")
+            print("Authentication successful.")
         else:
             client_socket.send(b"Authentication failed.")
+            print("Authentication failed.")
     else:
         client_socket.send(b"User not found.")
 
