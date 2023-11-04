@@ -22,7 +22,7 @@ try:
 except:
     print(str(public_key_pem))
     client_socket.close()
-    exit("Incorrect username...closing...")
+    exit("Incorrect username or password...closing...")
 # Encrypt the password with the server's public key
 encrypted_password = server_public_key.encrypt(
     password.encode(),
