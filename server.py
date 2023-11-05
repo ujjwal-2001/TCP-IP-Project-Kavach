@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 import argparse
 import ipaddress
+import csv
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP server")
@@ -44,11 +45,14 @@ public_pem = public_key.public_bytes(
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 )
 
-# Dummy authentication data (replace with a database in a real application)
-auth_data = {
-    "user1": "password1",
-    "user2": "password2",
-}
+# Function for authentication
+def user_credentials_exist_in_csv(file_path, username_to_check, password_to_check):
+    with open(file_path, 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            if row['username'] == username_to_check and row['password'] == password_to_check:
+                return True
+    return False
 
 # Define server address and port
 server_address = (server_ip, port)
@@ -69,37 +73,31 @@ server_socket.listen(1)
 print("Server is waiting for connections...")
 
 def authenticate(client_socket):
+
     # Receive the username
     username = client_socket.recv(1024).decode()
+    # Send the public key to the client
+    client_socket.send(public_pem)
+    # Receive the encrypted password from the client
+    encrypted_password = client_socket.recv(4096)
+    # Decrypt the password using the server's private key
+    decrypted_password = private_key.decrypt(
+        encrypted_password,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    ).decode()
 
-    if username in auth_data:
-        # Send the public key to the client
-        client_socket.send(public_pem)
-
-        # Receive the encrypted password from the client
-        encrypted_password = client_socket.recv(4096)
-
-        # Decrypt the password using the server's private key
-        decrypted_password = private_key.decrypt(
-            encrypted_password,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        ).decode()
-
-        # Check if the received password matches the stored password
-        if auth_data[username] == decrypted_password:
-            client_socket.send(b"Authentication successful.")
-            print("Authentication successful.")
-        else:
-            client_socket.send(b"Authentication failed.")
-            print("Authentication failed.")
+    # Check if the received password matches the stored password
+    if user_credentials_exist_in_csv("auth_dat.csv",username,decrypted_password):
+        client_socket.send(b"Authentication successful.")
+        print("Authentication successful.")
     else:
-        client_socket.send(b"User not found.")
-
-    client_socket.close()
+        client_socket.send(b"Authentication failed.")
+        print("Authentication failed: Either username or password is incorrect")
+        client_socket.close()
 
 while True:
     # Accept an incoming connection
