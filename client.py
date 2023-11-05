@@ -30,7 +30,11 @@ server_address = (server_ip, port)
 # Create a socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Connect to the server
-client_socket.connect(server_address)
+try:
+    client_socket.connect(server_address)
+except Exception as e:
+    print(f"Error while connecting: {e}")
+    exit()
 # Get user input for username and password
 username = input("Enter your username: ")
 password = input("Enter your password: ")

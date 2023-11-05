@@ -56,8 +56,12 @@ server_address = (server_ip, port)
 # Create a socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# Bind the socket to the address and port
-server_socket.bind(server_address)
+# Trying to bind the socket to the address and port
+try:
+    server_socket.bind(server_address)
+except Exception as e:
+    print(f"Error while binding: {e}")
+    exit()
 
 # Listen for incoming connections
 server_socket.listen(1)
