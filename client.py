@@ -3,8 +3,30 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
+import argparse
+import ipaddress
+
+# Command line interface
+parser = argparse.ArgumentParser(description="TCP Client")
+# Adding arguments/options
+parser.add_argument("-sIP", dest="server_ip", required=True, help="Server IPv4 address")
+parser.add_argument("-p", dest="port", required=True, type=int, help="Port number")
+
+args = parser.parse_args()
+
+server_ip = args.server_ip  # Extracting server IP from Command line
+port = args.port    # Extracting port number from Command line
+
+# Validate the provided server IP as a valid IPv4 address
+try:
+    ipaddress.IPv4Address(server_ip)
+except ipaddress.AddressValueError as err:
+    print("Error: The provided server IP is not a valid IPv4 address.")
+    print(err)
+    exit()
+
 # Define server address and port
-server_address = ('localhost', 12345)
+server_address = (server_ip, port)
 # Create a socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Connect to the server
