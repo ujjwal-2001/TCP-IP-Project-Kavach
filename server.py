@@ -91,7 +91,7 @@ def authenticate(client_socket):
     ).decode()
 
     # Check if the received password matches the stored password
-    if user_credentials_exist_in_csv("auth_dat.csv",username,decrypted_password):
+    if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):
         client_socket.send(b"Authentication successful.")
         print("Authentication successful.")
     else:
