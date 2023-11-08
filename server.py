@@ -6,12 +6,13 @@ from cryptography.hazmat.primitives.asymmetric import padding
 import argparse
 import ipaddress
 import csv
+import threading
 
 # Command line interface
-parser = argparse.ArgumentParser(description="TCP server")
+parser = argparse.ArgumentParser(description="TCP server. Usage: python server.py -sIP <server IPv4 address> (default: localhost) -p <port number> (default: 12345)")
 # Adding arguments/options
-parser.add_argument("-sIP", dest="server_ip", required=True, help="Server IPv4 address")
-parser.add_argument("-p", dest="port", required=True, type=int, help="Port number")
+parser.add_argument("-sIP", dest="server_ip", default= '0.0.0.0', help="Server IPv4 address")
+parser.add_argument("-p", dest="port", default=12345, type=int, help="Port number")
 
 args = parser.parse_args()
 
@@ -47,12 +48,15 @@ public_pem = public_key.public_bytes(
 
 # Function for authentication
 def user_credentials_exist_in_csv(file_path, username_to_check, password_to_check):
-    with open(file_path, 'r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        for row in csv_reader:
-            if row['username'] == username_to_check and row['password'] == password_to_check:
-                return True
-    return False
+    try:
+        with open(file_path, 'r') as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                if row['username'] == username_to_check and row['password'] == password_to_check:
+                    return True
+        return False
+    except:
+        print("Error while reading the CSV file.")
 
 # Define server address and port
 server_address = (server_ip, port)
@@ -68,9 +72,10 @@ except Exception as e:
     exit()
 
 # Listen for incoming connections
-server_socket.listen(1)
+max_clients = 5
+server_socket.listen(max_clients)
 
-print("Server is waiting for connections...")
+print(f"Server is waiting for connections @ {server_ip}:{port}...")
 
 def authenticate(client_socket):
 
@@ -93,16 +98,24 @@ def authenticate(client_socket):
     # Check if the received password matches the stored password
     if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):
         client_socket.send(b"Authentication successful.")
-        print("Authentication successful.")
+        print(f"Authentication successful with user {username}.")
+        return True
     else:
         client_socket.send(b"Authentication failed.")
-        print("Authentication failed: Either username or password is incorrect")
+        print(f"Authentication failed with user {username}: Either username or password is incorrect")
         client_socket.close()
+        return False
+
+# client_count = 0
+# threads = []
 
 while True:
     # Accept an incoming connection
     client_socket, client_address = server_socket.accept()
-    print(f"Connection from {client_address}")
+    print(f"Connection request from {client_address}")
 
     # Authenticate the client
-    authenticate(client_socket)
+    # Create a thread for the client
+    thread = threading.Thread(target=authenticate, args=(client_socket,))
+    thread.start()
+    # threads.append(thread)

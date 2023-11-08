@@ -7,10 +7,10 @@ import argparse
 import ipaddress
 
 # Command line interface
-parser = argparse.ArgumentParser(description="TCP Client")
+parser = argparse.ArgumentParser(description="TCP Client. Usage: python client.py -sIP <server IPv4 address> (default: localhost) -p <port number> (defualt: 12345)")
 # Adding arguments/options
-parser.add_argument("-sIP", dest="server_ip", required=True, help="Server IPv4 address")
-parser.add_argument("-p", dest="port", required=True, type=int, help="Port number")
+parser.add_argument("-sIP", dest="server_ip", default='127.0.0.1', help="Server IPv4 address")
+parser.add_argument("-p", dest="port", default=12345, type=int, help="Port number")
 
 args = parser.parse_args()
 
