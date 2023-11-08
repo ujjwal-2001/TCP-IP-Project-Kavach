@@ -79,30 +79,35 @@ print(f"Server is waiting for connections @ {server_ip}:{port}...")
 
 def authenticate(client_socket):
 
-    # Receive the username
-    username = client_socket.recv(1024).decode()
-    # Send the public key to the client
-    client_socket.send(public_pem)
-    # Receive the encrypted password from the client
-    encrypted_password = client_socket.recv(4096)
-    # Decrypt the password using the server's private key
-    decrypted_password = private_key.decrypt(
-        encrypted_password,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
-        )
-    ).decode()
+    try:
+        # Receive the username
+        username = client_socket.recv(1024).decode()
+        # Send the public key to the client
+        client_socket.send(public_pem)
+        # Receive the encrypted password from the client
+        encrypted_password = client_socket.recv(4096)
+        # Decrypt the password using the server's private key
+        decrypted_password = private_key.decrypt(
+            encrypted_password,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        ).decode()
 
-    # Check if the received password matches the stored password
-    if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):
-        client_socket.send(b"Authentication successful.")
-        print(f"Authentication successful with user {username}.")
-        return True
-    else:
-        client_socket.send(b"Authentication failed.")
-        print(f"Authentication failed with user {username}: Either username or password is incorrect")
+        # Check if the received password matches the stored password
+        if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):
+            client_socket.send(b"Authentication successful.")
+            print(f"Authentication successful with user {username}.")
+            return True
+        else:
+            client_socket.send(b"Authentication failed.")
+            print(f"Authentication failed with user {username}: Either username or password is incorrect")
+            client_socket.close()
+            return False
+    except Exception as e:
+        print(e)
         client_socket.close()
         return False
 
