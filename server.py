@@ -7,6 +7,7 @@ import argparse
 import ipaddress
 import csv
 import threading
+import json
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP server. Usage: python server.py -sIP <server IPv4 address> (default: localhost) -p <port number> (default: 12345)")
@@ -46,6 +47,9 @@ public_pem = public_key.public_bytes(
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 )
 
+#empty string to hold the username of the client
+accepted_username =""
+
 # Function for authentication
 def user_credentials_exist_in_csv(file_path, username_to_check, password_to_check):
     try:
@@ -53,6 +57,8 @@ def user_credentials_exist_in_csv(file_path, username_to_check, password_to_chec
             csv_reader = csv.DictReader(csv_file)
             for row in csv_reader:
                 if row['username'] == username_to_check and row['password'] == password_to_check:
+                    global accepted_username
+                    accepted_username = row['username']
                     return True
         return False
     except:
@@ -111,16 +117,37 @@ def authenticate(client_socket):
         client_socket.close()
         return False
 
+# rec_buff is a global buffer that can be accessed by all the threads (in this case two threads)
+rcv_buff = {}
+
+def handle_client(client_socket):
+      if(authenticate(client_socket)):
+         while True:
+                    # update rec buffer
+                    # make necessary decision by examining rec_buff data of train of its own thread and other thread
+                    # send decision to the train corresponding to that particular thread
+                    message= client_socket.recv(1024).decode()
+                    print(type(message))
+                    print(message)
+                    message_d=json.loads(message)
+                    
+                    print(type(message_d))
+                    rcv_buff = {accepted_username : message_d}
+                    if(len(message) != 0):
+                     print(rcv_buff[accepted_username])
+                
 # client_count = 0
 # threads = []
 
 while True:
     # Accept an incoming connection
+    # Main thread -> to keep the server open for new incoming connections
     client_socket, client_address = server_socket.accept()
     print(f"Connection request from {client_address}")
 
     # Authenticate the client
     # Create a thread for the client
-    thread = threading.Thread(target=authenticate, args=(client_socket,))
+    # this thread is dedicated to each client
+    thread = threading.Thread(target=handle_client, args=(client_socket,))
     thread.start()
     # threads.append(thread)
