@@ -80,12 +80,15 @@ signal_event = threading.Event()
 # Function to stop the train
 def stop_train(client_socket):
     while True:
-        message = client_socket.recv(1024).decode()
-        # stop = input("Enter 'stop' to stop the train: ")
-        if message == "stop":
-            print("Stopping the train as signal received...")
-            signal_event.set()
-            # sys.exit(0)
+        try:
+            message = client_socket.recv(1024).decode()
+            # stop = input("Enter 'stop' to stop the train: ")
+            if message == "stop":
+                print("Stopping the train as signal received...")
+                signal_event.set()
+                # sys.exit(0)
+        except:
+            break
 
 stopper_thread = threading.Thread(target=stop_train, args=(client_socket,))
 stopper_thread.start() 
