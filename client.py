@@ -8,7 +8,7 @@ import ipaddress
 import json
 import time
 import threading
-import sys
+# import sys
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP Client. Usage: python client.py -sIP <server IPv4 address> (default: localhost) -p <port number> (defualt: 12345)")
@@ -75,6 +75,8 @@ if response == "Forbidden.":
     exit("Incorrect username or password...closing...")
 print(response)
 
+signal_event = threading.Event()
+
 # Function to stop the train
 def stop_train(client_socket):
     while True:
@@ -82,7 +84,8 @@ def stop_train(client_socket):
         # stop = input("Enter 'stop' to stop the train: ")
         if message == "stop":
             print("Stopping the train as signal received...")
-            sys.exit(0)
+            signal_event.set()
+            # sys.exit(0)
 
 stopper_thread = threading.Thread(target=stop_train, args=(client_socket,))
 stopper_thread.start() 
@@ -97,11 +100,12 @@ packets_data_to_send = sim_data["sim"+str(sim)][train_data]
 try:
     for packet in packets_data_to_send:
         # Send data to the server
-        packet_str = str(packet)
-        client_socket.sendall(packet_str.encode())
-        print(f"Sent: {packet}")
-        # Sleep for 1 second before sending the next data
-        time.sleep(1)
+        if(not signal_event.is_set()):
+            packet_str = str(packet)
+            client_socket.sendall(packet_str.encode())
+            print(f"Sent: {packet}")
+            # Sleep for 1 second before sending the next data
+            time.sleep(1)
 
 finally:
     client_socket.close()

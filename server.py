@@ -133,16 +133,19 @@ def handle_client(client_socket):
             # update rec buffer
             # make necessary decision by examining rec_buff data of train of its own thread and other thread
             # send decision to the train corresponding to that particular thread
-            message= client_socket.recv(1024).decode() # decoding the data received in string "message"
-            if(len(message) != 0):
-                message_dict = eval(message) # converting the string to a dictionary to access trackID and tagID
-                global rcv_buff
-                rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
-                print(f"{accepted_username} : {rcv_buff}") # printing for testing purposes
-                if(shouldStop(rcv_buff)):
-                    # send message to the train to stop
-                    print(f"Stopping the train {accepted_username} as signal received...")
-                    client_socket.send(b"stop")
+            try:
+                message= client_socket.recv(1024).decode() # decoding the data received in string "message"
+                if(len(message) != 0):
+                    message_dict = eval(message) # converting the string to a dictionary to access trackID and tagID
+                    global rcv_buff
+                    rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
+                    print(f"{accepted_username} : {rcv_buff}") # printing for testing purposes
+                    if(shouldStop(rcv_buff)):
+                        # send message to the train to stop
+                        print(f"Stopping the train {accepted_username} as signal received...")
+                        client_socket.send(b"stop")
+            except:
+                pass
                       
                 
 # client_count = 0
