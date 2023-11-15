@@ -7,6 +7,8 @@ import argparse
 import ipaddress
 import json
 import time
+import threading
+import sys
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP Client. Usage: python client.py -sIP <server IPv4 address> (default: localhost) -p <port number> (defualt: 12345)")
@@ -54,6 +56,7 @@ except:
     print(str(public_key_pem))
     client_socket.close()
     exit("Incorrect username or password...closing...")
+
 # Encrypt the password with the server's public key
 encrypted_password = server_public_key.encrypt(
     password.encode(),
@@ -67,7 +70,22 @@ encrypted_password = server_public_key.encrypt(
 client_socket.send(encrypted_password)
 # Receive the authentication result
 response = client_socket.recv(1024).decode()
+if response == "Forbidden.":
+    client_socket.close()
+    exit("Incorrect username or password...closing...")
 print(response)
+
+# Function to stop the train
+def stop_train(client_socket):
+    while True:
+        message = client_socket.recv(1024).decode()
+        # stop = input("Enter 'stop' to stop the train: ")
+        if message == "stop":
+            print("Stopping the train as signal received...")
+            sys.exit(0)
+
+stopper_thread = threading.Thread(target=stop_train, args=(client_socket,))
+stopper_thread.start() 
 
 # Loading Simulation Data
 data_file = open("simulation_data.json")

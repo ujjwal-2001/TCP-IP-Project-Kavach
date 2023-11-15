@@ -28,4 +28,4 @@ After running the client, enter valid username and password for further communic
 ### Team Members
 1. UJJWAL CHAUDHARY, M. Tech. ESE'25
 2. R. GUHAN,         M. Tech. ESE'25
-3. SUNDARESAN G.,    M. Tech. CSA'24
+3. SUNDARESAN G.,    M. Tech. CDS'24

@@ -46,9 +46,6 @@ public_pem = public_key.public_bytes(
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 )
 
-#empty string to hold the username of the client
-accepted_username =""
-
 # Function for authentication
 def user_credentials_exist_in_csv(file_path, username_to_check, password_to_check):
     try:
@@ -56,8 +53,6 @@ def user_credentials_exist_in_csv(file_path, username_to_check, password_to_chec
             csv_reader = csv.DictReader(csv_file)
             for row in csv_reader:
                 if row['username'] == username_to_check and row['password'] == password_to_check:
-                    global accepted_username
-                    accepted_username = row['username']
                     return True
         return False
     except:
@@ -82,7 +77,7 @@ server_socket.listen(max_clients)
 
 print(f"Server is waiting for connections @ {server_ip}:{port}...")
 
-def authenticate(client_socket):
+def authenticate(client_socket)->(bool, str):
 
     try:
         # Receive the username
@@ -105,53 +100,59 @@ def authenticate(client_socket):
         if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):
             client_socket.send(b"Authentication successful.")
             print(f"Authentication successful with user {username}.")
-            return True
+            return (True, username)
         else:
-            client_socket.send(b"Authentication failed.")
+            client_socket.send(b"Forbidden.")
             print(f"Authentication failed with user {username}: Either username or password is incorrect")
             client_socket.close()
-            return False
+            return (False, None)
     except Exception as e:
         print(e)
         client_socket.close()
-        return False
+        return (False, None)
 
 # rec_buff is a global buffer that can be accessed by all the threads (in this case two threads)
 rcv_buff = {}
+# rcv_buff_lock = threading.Lock()
 
 def shouldStop(rcv_buffer):
     # using another 
     if(len(rcv_buffer) != 1):  # case where the buffer has data of both the trains
-            # No need to stop the trains on different tracks
-            if(rcv_buffer["user1"].get('trackID') != rcv_buffer["user2"].get('trackID')):
-                return False
-            else:
-                if(abs(rcv_buffer["user1"].get('tagID') - rcv_buffer["user2"].get('tagID')) <= 2):
-                    return True 
+        # No need to stop the trains on different tracks
+        if(rcv_buffer["user1"].get('trackID') != rcv_buffer["user2"].get('trackID')):
+            return False
+        else:
+            if(abs(rcv_buffer["user1"].get('tagID') - rcv_buffer["user2"].get('tagID')) <= 3):
+                return True 
     return False
 
 def handle_client(client_socket):
-      if(authenticate(client_socket)):
-         while True:
-                    # update rec buffer
-                    # make necessary decision by examining rec_buff data of train of its own thread and other thread
-                    # send decision to the train corresponding to that particular thread
-                    message= client_socket.recv(1024).decode() # decoding the data received in string "message"
-                    if(len(message) != 0):
-                      message_dict = eval(message) # converting the string to a dictionary to access trackID and tagID
-                      global rcv_buff
-                      rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
-                      print(rcv_buff)              # printing for testing purposes
-                      #if(shouldStop(rcv_buff)):
-                          # send message to the train to stop
+      authenticated_flag, accepted_username = authenticate(client_socket)
+      if(authenticated_flag):
+        while True:
+            # update rec buffer
+            # make necessary decision by examining rec_buff data of train of its own thread and other thread
+            # send decision to the train corresponding to that particular thread
+            message= client_socket.recv(1024).decode() # decoding the data received in string "message"
+            if(len(message) != 0):
+                message_dict = eval(message) # converting the string to a dictionary to access trackID and tagID
+                global rcv_buff
+                rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
+                print(f"{accepted_username} : {rcv_buff}") # printing for testing purposes
+                if(shouldStop(rcv_buff)):
+                    # send message to the train to stop
+                    print(f"Stopping the train {accepted_username} as signal received...")
+                    client_socket.send(b"stop")
                       
                 
 # client_count = 0
 # threads = []
 
+
 while True:
     # Accept an incoming connection
     # Main thread -> to keep the server open for new incoming connections
+    # print(f"Main prints {rcv_buff}")
     client_socket, client_address = server_socket.accept()
     print(f"Connection request from {client_address}")
 
