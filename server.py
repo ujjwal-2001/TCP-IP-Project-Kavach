@@ -7,7 +7,6 @@ import argparse
 import ipaddress
 import csv
 import threading
-import json
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP server. Usage: python server.py -sIP <server IPv4 address> (default: localhost) -p <port number> (default: 12345)")
@@ -120,21 +119,32 @@ def authenticate(client_socket):
 # rec_buff is a global buffer that can be accessed by all the threads (in this case two threads)
 rcv_buff = {}
 
+def shouldStop(rcv_buffer):
+    # using another 
+    if(len(rcv_buffer) != 1):  # case where the buffer has data of both the trains
+            # No need to stop the trains on different tracks
+            if(rcv_buffer["user1"].get('trackID') != rcv_buffer["user2"].get('trackID')):
+                return False
+            else:
+                if(abs(rcv_buffer["user1"].get('tagID') - rcv_buffer["user2"].get('tagID')) <= 2):
+                    return True 
+    return False
+
 def handle_client(client_socket):
       if(authenticate(client_socket)):
          while True:
                     # update rec buffer
                     # make necessary decision by examining rec_buff data of train of its own thread and other thread
                     # send decision to the train corresponding to that particular thread
-                    message= client_socket.recv(1024).decode()
-                    print(type(message))
-                    print(message)
-                    message_d=json.loads(message)
-                    
-                    print(type(message_d))
-                    rcv_buff = {accepted_username : message_d}
+                    message= client_socket.recv(1024).decode() # decoding the data received in string "message"
                     if(len(message) != 0):
-                     print(rcv_buff[accepted_username])
+                      message_dict = eval(message) # converting the string to a dictionary to access trackID and tagID
+                      global rcv_buff
+                      rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
+                      print(rcv_buff)              # printing for testing purposes
+                      #if(shouldStop(rcv_buff)):
+                          # send message to the train to stop
+                      
                 
 # client_count = 0
 # threads = []
