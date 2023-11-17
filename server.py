@@ -36,6 +36,9 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 ssl_context.load_cert_chain(certfile='certificates/server-cert.pem', keyfile='certificates/server-key.pem')
 
+ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+
 ssl_socket = ssl_context.wrap_socket(server_socket, server_side=True, do_handshake_on_connect=True)
 
 # context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

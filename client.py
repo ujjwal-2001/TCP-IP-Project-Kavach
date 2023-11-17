@@ -38,7 +38,8 @@ try:
     # password = input("Enter your password: ")
     password = getpass.getpass("Enter your password: ")
     # Hash the password
-    password = hashlib.md5(password.encode()).hexdigest()
+    # password = hashlib.md5(password.encode()).hexdigest()
+    password = hashlib.sha256(password.encode()).hexdigest()
 except:
     exit()
 
@@ -51,6 +52,9 @@ try:
     # Wrap the socket in an SSL context
     ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
     ssl_context.load_verify_locations('certificates/ca-cert.pem')  # Certificate Authority's public key
+
+    ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+    ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
 
     ssl_socket = ssl_context.wrap_socket(client_socket, do_handshake_on_connect=True, server_hostname= "server")
     # ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
