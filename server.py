@@ -8,6 +8,7 @@ import ipaddress
 import csv
 import threading
 import signal
+import pickle
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP server. Usage: python server.py -sIP <server IPv4 address> (default: localhost) -p <port number> (default: 12345)")
@@ -78,15 +79,17 @@ server_socket.listen(max_clients)
 
 print(f"Server is waiting for connections @ {server_ip}:{port}...")
 
+server_close_flag = threading.Event()
+
 def authenticate(client_socket)->(bool, str):
 
     try:
-        # Receive the username
-        username = client_socket.recv(1024).decode()
         # Send the public key to the client
         client_socket.send(public_pem)
-        # Receive the encrypted password from the client
-        encrypted_password = client_socket.recv(4096)
+        # Receive the username and encrypted password from the client
+        received_data = client_socket.recv(4096+1024)
+        (username, encrypted_password) = pickle.loads(received_data)
+        
         # Decrypt the password using the server's private key
         decrypted_password = private_key.decrypt(
             encrypted_password,
@@ -103,7 +106,7 @@ def authenticate(client_socket)->(bool, str):
             print(f"Authentication successful with user {username}.")
             return (True, username)
         else:
-            client_socket.send(b"Forbidden.")
+            client_socket.send(b"0")
             print(f"Authentication failed with user {username}: Either username or password is incorrect")
             client_socket.close()
             return (False, None)
@@ -128,9 +131,9 @@ def shouldStop(rcv_buffer):
     return False
 
 def handle_client(client_socket):
-      authenticated_flag, accepted_username = authenticate(client_socket)
-      if(authenticated_flag):
-        while True:
+    authenticated_flag, accepted_username = authenticate(client_socket)
+    if(authenticated_flag):
+        while server_close_flag.is_set() == False:
             # update rec buffer
             # make necessary decision by examining rec_buff data of train of its own thread and other thread
             # send decision to the train corresponding to that particular thread
@@ -146,23 +149,22 @@ def handle_client(client_socket):
                         print(f"Stopping the train {accepted_username} as signal received...")
                         client_socket.send(b"stop")
             except:
-                pass
-                      
+                pass  
                 
 # client_count = 0
-# threads = []
+threads = []
 
 # For closing the server gracefully in case of Keyboard interrupt
 def handle_interrupt(signum, frame):
-    print("Keyboard interrupt. Closing server...")
+    server_close_flag.set()
     server_socket.close()
-    exit()
+    exit("Keyboard interrupt. Closing server...")
 
 signal.signal(signal.SIGINT, handle_interrupt)
 
 server_socket.settimeout(1)
 
-while True:
+while server_close_flag.is_set() == False:
     # Accept an incoming connection
     # Main thread -> to keep the server open for new incoming connections
     # print(f"Main prints {rcv_buff}")
@@ -170,12 +172,6 @@ while True:
         client_socket, client_address = server_socket.accept()
     except socket.timeout:
         continue
-        
-    # except (KeyboardInterrupt, socket.timeout) as e:
-    #     print(KeyboardInterrupt)
-    #     print("Keyboard interrupt...closing...")
-    #     server_socket.close()
-    #     exit()
 
     print(f"Connection request from {client_address}")
 
@@ -184,4 +180,7 @@ while True:
     # this thread is dedicated to each client
     thread = threading.Thread(target=handle_client, args=(client_socket,))
     thread.start()
-    # threads.append(thread)
+    threads.append(thread)
+
+for thread in threads:
+    thread.join()

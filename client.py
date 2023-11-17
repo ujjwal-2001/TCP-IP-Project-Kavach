@@ -8,6 +8,7 @@ import ipaddress
 import json
 import time
 import threading
+import pickle
 # import sys
 
 # Command line interface
@@ -30,7 +31,11 @@ try:
 except ipaddress.AddressValueError as err:
     print("Error: The provided server IP is not a valid IPv4 address.")
     print(err)
-    exit()
+    exit("Closing...")
+
+# Get user input for username and password
+username = input("Enter your username: ")
+password = input("Enter your password: ")
 
 # Define server address and port
 server_address = (server_ip, port)
@@ -42,20 +47,19 @@ try:
 except Exception as e:
     print(f"Error while connecting: {e}")
     exit()
-# Get user input for username and password
-username = input("Enter your username: ")
-password = input("Enter your password: ")
-# Send the username to the server
-client_socket.send(username.encode())
+
 # Receive the public key from the server
 public_key_pem = client_socket.recv(4096)
 # Load the server's public key
 try:
     server_public_key = serialization.load_pem_public_key(public_key_pem)
 except:
-    print(str(public_key_pem))
+    # print(str(public_key_pem))
     client_socket.close()
-    exit("Incorrect username or password...closing...")
+    exit("Error in receiving public key...closing...")
+
+# Send the username to the server
+# client_socket.send(username.encode())
 
 # Encrypt the password with the server's public key
 encrypted_password = server_public_key.encrypt(
@@ -66,11 +70,19 @@ encrypted_password = server_public_key.encrypt(
         label=None
     )
 )
+
+# Create a tuple with username and encrypted password
+data_to_send = (username, encrypted_password)
+
+# Serialize the tuple using pickle
+serialized_data = pickle.dumps(data_to_send)
+
 # Send the encrypted password to the server
-client_socket.send(encrypted_password)
+client_socket.send(serialized_data)
+
 # Receive the authentication result
 response = client_socket.recv(1024).decode()
-if response == "Forbidden.":
+if response == "0":
     client_socket.close()
     exit("Incorrect username or password...closing...")
 print(response)
@@ -79,7 +91,7 @@ signal_event = threading.Event()
 
 # Function to stop the train
 def stop_train(client_socket):
-    while True:
+    while signal_event.is_set() == False:
         try:
             message = client_socket.recv(1024).decode()
             # stop = input("Enter 'stop' to stop the train: ")
@@ -109,6 +121,11 @@ try:
             print(f"Sent: {packet}")
             # Sleep for 1 second before sending the next data
             time.sleep(1)
-
+except KeyboardInterrupt:
+    print("Keyboard Interrupt...closing...")
+except Exception as e:
+    print(f"Error while sending data: {e}")
 finally:
     client_socket.close()
+    signal_event.set()
+    stopper_thread.join()
