@@ -1,14 +1,11 @@
 import socket
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
 import argparse
 import ipaddress
 import csv
 import threading
 import signal
 import pickle
+import ssl
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP server. Usage: python server.py -sIP <server IPv4 address> (default: localhost) -p <port number> (default: 12345)")
@@ -29,42 +26,16 @@ except ipaddress.AddressValueError as err:
     print(err)
     exit()
 
-# Generate a server RSA key pair
-private_key = rsa.generate_private_key(
-    public_exponent=65537,
-    key_size=2048,
-)
-
-private_pem = private_key.private_bytes(
-    encoding=serialization.Encoding.PEM,
-    format=serialization.PrivateFormat.PKCS8,
-    encryption_algorithm=serialization.NoEncryption()
-)
-
-# Extract the public key for sharing with clients
-public_key = private_key.public_key()
-public_pem = public_key.public_bytes(
-    encoding=serialization.Encoding.PEM,
-    format=serialization.PublicFormat.SubjectPublicKeyInfo
-)
-
-# Function for authentication
-def user_credentials_exist_in_csv(file_path, username_to_check, password_to_check):
-    try:
-        with open(file_path, 'r') as csv_file:
-            csv_reader = csv.DictReader(csv_file)
-            for row in csv_reader:
-                if row['username'] == username_to_check and row['password'] == password_to_check:
-                    return True
-        return False
-    except:
-        print("Error while reading the CSV file.")
-
 # Define server address and port
 server_address = (server_ip, port)
 
 # Create a socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+context.load_cert_chain('selfsigned.crt', 'private.key')
+ssl_socket = context.wrap_socket(server_socket, server_side=True)
+server_socket = ssl_socket
 
 # Trying to bind the socket to the address and port
 try:
@@ -81,24 +52,37 @@ print(f"Server is waiting for connections @ {server_ip}:{port}...")
 
 server_close_flag = threading.Event()
 
+# Function for authentication
+def user_credentials_exist_in_csv(file_path, username_to_check, password_to_check):
+    try:
+        with open(file_path, 'r') as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                if row['username'] == username_to_check and row['password'] == password_to_check:
+                    return True
+        return False
+    except:
+        print("Error while reading the CSV file.")
+
 def authenticate(client_socket)->(bool, str):
 
     try:
         # Send the public key to the client
-        client_socket.send(public_pem)
+        # client_socket.send(public_pem)
         # Receive the username and encrypted password from the client
         received_data = client_socket.recv(4096+1024)
         (username, encrypted_password) = pickle.loads(received_data)
         
         # Decrypt the password using the server's private key
-        decrypted_password = private_key.decrypt(
-            encrypted_password,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        ).decode()
+        # decrypted_password = private_key.decrypt(
+        #     encrypted_password,
+        #     padding.OAEP(
+        #         mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        #         algorithm=hashes.SHA256(),
+        #         label=None
+        #     )
+        # ).decode()
+        decrypted_password = encrypted_password
 
         # Check if the received password matches the stored password
         if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):
@@ -117,7 +101,6 @@ def authenticate(client_socket)->(bool, str):
 
 # rec_buff is a global buffer that can be accessed by all the threads (in this case two threads)
 rcv_buff = {}
-# rcv_buff_lock = threading.Lock()
 
 def shouldStop(rcv_buffer):
     # using another 
@@ -170,8 +153,12 @@ while server_close_flag.is_set() == False:
     # print(f"Main prints {rcv_buff}")
     try:
         client_socket, client_address = server_socket.accept()
+
     except socket.timeout:
         continue
+    except Exception as e:
+        print(f"Error while accepting client : {e}")
+        exit()
 
     print(f"Connection request from {client_address}")
 

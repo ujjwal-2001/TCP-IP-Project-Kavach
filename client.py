@@ -1,15 +1,11 @@
 import socket
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes
 import argparse
 import ipaddress
 import json
 import time
 import threading
 import pickle
-# import sys
+import ssl
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP Client. Usage: python client.py -sIP <server IPv4 address> (default: localhost) -p <port number> (defualt: 12345)")
@@ -41,6 +37,9 @@ password = input("Enter your password: ")
 server_address = (server_ip, port)
 # Create a socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
+client_socket = ssl_socket
+
 # Connect to the server
 try:
     client_socket.connect(server_address)
@@ -48,31 +47,8 @@ except Exception as e:
     print(f"Error while connecting: {e}")
     exit()
 
-# Receive the public key from the server
-public_key_pem = client_socket.recv(4096)
-# Load the server's public key
-try:
-    server_public_key = serialization.load_pem_public_key(public_key_pem)
-except:
-    # print(str(public_key_pem))
-    client_socket.close()
-    exit("Error in receiving public key...closing...")
-
-# Send the username to the server
-# client_socket.send(username.encode())
-
-# Encrypt the password with the server's public key
-encrypted_password = server_public_key.encrypt(
-    password.encode(),
-    padding.OAEP(
-        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-        algorithm=hashes.SHA256(),
-        label=None
-    )
-)
-
 # Create a tuple with username and encrypted password
-data_to_send = (username, encrypted_password)
+data_to_send = (username, password)
 
 # Serialize the tuple using pickle
 serialized_data = pickle.dumps(data_to_send)
