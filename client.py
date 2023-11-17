@@ -42,7 +42,13 @@ server_address = (server_ip, port)
 # Create a socket
 try:
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
+
+    # Wrap the socket in an SSL context
+    ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+    ssl_context.load_verify_locations('certificates/ca-cert.pem')  # Certificate Authority's public key
+
+    ssl_socket = ssl_context.wrap_socket(client_socket, do_handshake_on_connect=True, server_hostname= "server")
+    # ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
     client_socket = ssl_socket
 except Exception as e:
     exit(f"Error creating socket: {e}")
