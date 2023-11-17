@@ -1,7 +1,7 @@
 from OpenSSL import crypto, SSL
 
 def cert_gen(
-    emailAddress="emailAddress",
+    emailAddress="server@iisc.ac.in",
     commonName="commonName",
     countryName="NT",
     localityName="localityName",
@@ -11,8 +11,8 @@ def cert_gen(
     serialNumber=0,
     validityStartInSeconds=0,
     validityEndInSeconds=10*365*24*60*60,
-    KEY_FILE = "private.key",
-    CERT_FILE="selfsigned.crt"):
+    KEY_FILE = "server_private.key",
+    CERT_FILE="server.crt"):
     #can look at generated file using openssl:
     #openssl x509 -inform pem -in selfsigned.crt -noout -text
     # create a key pair
