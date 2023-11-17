@@ -7,6 +7,7 @@ import argparse
 import ipaddress
 import csv
 import threading
+import signal
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP server. Usage: python server.py -sIP <server IPv4 address> (default: localhost) -p <port number> (default: 12345)")
@@ -151,12 +152,31 @@ def handle_client(client_socket):
 # client_count = 0
 # threads = []
 
+# For closing the server gracefully in case of Keyboard interrupt
+def handle_interrupt(signum, frame):
+    print("Keyboard interrupt. Closing server...")
+    server_socket.close()
+    exit()
+
+signal.signal(signal.SIGINT, handle_interrupt)
+
+server_socket.settimeout(1)
 
 while True:
     # Accept an incoming connection
     # Main thread -> to keep the server open for new incoming connections
     # print(f"Main prints {rcv_buff}")
-    client_socket, client_address = server_socket.accept()
+    try:
+        client_socket, client_address = server_socket.accept()
+    except socket.timeout:
+        continue
+        
+    # except (KeyboardInterrupt, socket.timeout) as e:
+    #     print(KeyboardInterrupt)
+    #     print("Keyboard interrupt...closing...")
+    #     server_socket.close()
+    #     exit()
+
     print(f"Connection request from {client_address}")
 
     # Authenticate the client
