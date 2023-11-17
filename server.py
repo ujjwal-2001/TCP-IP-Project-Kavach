@@ -33,7 +33,7 @@ server_address = (server_ip, port)
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-context.load_cert_chain('selfsigned.crt', 'private.key')
+context.load_cert_chain('server.crt', 'server_private.key')
 ssl_socket = context.wrap_socket(server_socket, server_side=True)
 server_socket = ssl_socket
 
@@ -67,21 +67,10 @@ def user_credentials_exist_in_csv(file_path, username_to_check, password_to_chec
 def authenticate(client_socket)->(bool, str):
 
     try:
-        # Send the public key to the client
-        # client_socket.send(public_pem)
         # Receive the username and encrypted password from the client
         received_data = client_socket.recv(4096+1024)
         (username, encrypted_password) = pickle.loads(received_data)
         
-        # Decrypt the password using the server's private key
-        # decrypted_password = private_key.decrypt(
-        #     encrypted_password,
-        #     padding.OAEP(
-        #         mgf=padding.MGF1(algorithm=hashes.SHA256()),
-        #         algorithm=hashes.SHA256(),
-        #         label=None
-        #     )
-        # ).decode()
         decrypted_password = encrypted_password
 
         # Check if the received password matches the stored password
@@ -131,8 +120,13 @@ def handle_client(client_socket):
                         # send message to the train to stop
                         print(f"Stopping the train {accepted_username} as signal received...")
                         client_socket.send(b"stop")
+                if not message:
+                    print(f"Client {accepted_username} disconnected due to no keepalive...")
+                    break
             except:
-                pass  
+                pass 
+    client_socket.close()
+    print(f"Connection with {accepted_username} closed.") 
                 
 # client_count = 0
 threads = []
@@ -140,12 +134,19 @@ threads = []
 # For closing the server gracefully in case of Keyboard interrupt
 def handle_interrupt(signum, frame):
     server_close_flag.set()
-    server_socket.close()
-    exit("Keyboard interrupt. Closing server...")
+    # server_socket.close()
+    # exit("Keyboard interrupt. Closing server...")
+    print("Keyboard interrupt. Closing server...")
 
 signal.signal(signal.SIGINT, handle_interrupt)
 
 server_socket.settimeout(1)
+
+def set_keepalive(sock, interval=1, retries=3):
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, interval)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, retries)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval)
 
 while server_close_flag.is_set() == False:
     # Accept an incoming connection
@@ -153,6 +154,12 @@ while server_close_flag.is_set() == False:
     # print(f"Main prints {rcv_buff}")
     try:
         client_socket, client_address = server_socket.accept()
+
+        # The below timeout is to ensure that the thread closes too because recv is a blocking call
+        client_socket.settimeout(1)
+
+        # Enabling keepalive for client autoexit
+        set_keepalive(client_socket)
 
     except socket.timeout:
         continue
@@ -169,5 +176,4 @@ while server_close_flag.is_set() == False:
     thread.start()
     threads.append(thread)
 
-for thread in threads:
-    thread.join()
+server_socket.close()

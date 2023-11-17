@@ -6,6 +6,7 @@ import time
 import threading
 import pickle
 import ssl
+import signal
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP Client. Usage: python client.py -sIP <server IPv4 address> (default: localhost) -p <port number> (defualt: 12345)")
@@ -30,15 +31,21 @@ except ipaddress.AddressValueError as err:
     exit("Closing...")
 
 # Get user input for username and password
-username = input("Enter your username: ")
-password = input("Enter your password: ")
+try:
+    username = input("Enter your username: ")
+    password = input("Enter your password: ")
+except:
+    exit()
 
 # Define server address and port
 server_address = (server_ip, port)
 # Create a socket
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
-client_socket = ssl_socket
+try:
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
+    client_socket = ssl_socket
+except Exception as e:
+    exit(f"Error creating socket: {e}")
 
 # Connect to the server
 try:
@@ -63,20 +70,35 @@ if response == "0":
     exit("Incorrect username or password...closing...")
 print(response)
 
-signal_event = threading.Event()
+signal_stop_event = threading.Event()
+
+def set_keepalive(sock, interval=1, retries=3):
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, interval)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, retries)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval)
 
 # Function to stop the train
 def stop_train(client_socket):
-    while signal_event.is_set() == False:
+    # Keepalive timer check
+    client_socket.settimeout(2)
+    set_keepalive(client_socket)
+    while signal_stop_event.is_set() == False:
         try:
             message = client_socket.recv(1024).decode()
+
+            if not message:
+                print("Server not reachable (keepalive failure). Closing...")
+                break
+
             # stop = input("Enter 'stop' to stop the train: ")
             if message == "stop":
                 print("Stopping the train as signal received...")
-                signal_event.set()
+                signal_stop_event.set()
                 # sys.exit(0)
         except:
-            break
+            continue
+    client_socket.close()
 
 stopper_thread = threading.Thread(target=stop_train, args=(client_socket,))
 stopper_thread.start() 
@@ -87,11 +109,20 @@ sim_data = json.load(data_file)
 train_data= "trainB_data" if(trainID=="B") else "trainA_data"
 packets_data_to_send = sim_data["sim"+str(sim)][train_data]
 
+# For closing the client gracefully in case of Keyboard interrupt
+def handle_interrupt(signum, frame):
+    signal_stop_event.set()
+    # server_socket.close()
+    # exit("Keyboard interrupt. Closing server...")
+    print("Keyboard interrupt. Closing client...")
+
+signal.signal(signal.SIGINT, handle_interrupt)
+
 # Sending packets with 1 sec gap
 try:
     for packet in packets_data_to_send:
         # Send data to the server
-        if(not signal_event.is_set()):
+        if(not signal_stop_event.is_set()):
             packet_str = str(packet)
             client_socket.sendall(packet_str.encode())
             print(f"Sent: {packet}")
@@ -99,9 +130,13 @@ try:
             time.sleep(1)
 except KeyboardInterrupt:
     print("Keyboard Interrupt...closing...")
+    signal_stop_event.set()
 except Exception as e:
     print(f"Error while sending data: {e}")
+    signal_stop_event.set()
 finally:
-    client_socket.close()
-    signal_event.set()
+    # signal_stop_event.set()
+    # try:
     stopper_thread.join()
+    # except:
+    #     pass
