@@ -7,6 +7,8 @@ import threading
 import pickle
 import ssl
 import signal
+import getpass
+import hashlib
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP Client. Usage: python client.py -sIP <server IPv4 address> (default: localhost) -p <port number> (defualt: 12345)")
@@ -33,7 +35,10 @@ except ipaddress.AddressValueError as err:
 # Get user input for username and password
 try:
     username = input("Enter your username: ")
-    password = input("Enter your password: ")
+    # password = input("Enter your password: ")
+    password = getpass.getpass("Enter your password: ")
+    # Hash the password
+    password = hashlib.md5(password.encode()).hexdigest()
 except:
     exit()
 
@@ -142,7 +147,6 @@ except Exception as e:
     signal_stop_event.set()
 finally:
     # signal_stop_event.set()
-    # try:
+    while stopper_thread.is_alive():
+        time.sleep(3)
     stopper_thread.join()
-    # except:
-    #     pass
