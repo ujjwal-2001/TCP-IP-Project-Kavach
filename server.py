@@ -158,7 +158,7 @@ while server_close_flag.is_set() == False:
         continue
     except Exception as e:
         print(f"Error while accepting client : {e}")
-        exit()
+        continue
 
     print(f"Connection request from {client_address}")
 
