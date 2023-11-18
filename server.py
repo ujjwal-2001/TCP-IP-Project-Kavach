@@ -85,11 +85,11 @@ def authenticate(client_socket)->(bool, str):
 
         # Check if the received password matches the stored password
         if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):
-            client_socket.send(b"Authentication successful.")
+            client_socket.sendall(b"Authentication successful.")
             print(f"Authentication successful with user {username}.")
             return (True, username)
         else:
-            client_socket.send(b"0")
+            client_socket.sendall(b"0")
             print(f"Authentication failed with user {username}: Either username or password is incorrect")
             client_socket.close()
             return (False, None)
@@ -101,15 +101,18 @@ def authenticate(client_socket)->(bool, str):
 # rec_buff is a global buffer that can be accessed by all the threads (in this case two threads)
 rcv_buff = {}
 
-def shouldStop(rcv_buffer):
+def shouldStop(rcv_buffer, accepted_username):
     # using another 
     if(len(rcv_buffer) != 1):  # case where the buffer has data of both the trains
         # No need to stop the trains on different tracks
-        if(rcv_buffer["user1"].get('trackID') != rcv_buffer["user2"].get('trackID')):
-            return False
-        else:
-            if(abs(rcv_buffer["user1"].get('posID') - rcv_buffer["user2"].get('posID')) <= 3):
-                return True 
+        for other_user in rcv_buffer.keys():
+            if(other_user != accepted_username):
+                if(rcv_buffer[accepted_username].get('trackID') != rcv_buffer[other_user].get('trackID')):
+                    return False
+                else:
+                    # If the trains are on the same track, check the distance between them
+                    if(abs(rcv_buffer[accepted_username].get('posID') - rcv_buffer[other_user].get('posID')) <= 3):
+                        return True
     return False
 
 def handle_client(client_socket):
@@ -131,10 +134,10 @@ def handle_client(client_socket):
                     break
             except:
                 pass
-            if(shouldStop(rcv_buff)):
+            if(shouldStop(rcv_buff, accepted_username)):
                         # send message to the train to stop
                         print(f"Stopping the train {accepted_username} as signal received...")
-                        client_socket.send(b"stop") 
+                        client_socket.sendall(b"stop") 
     client_socket.close()
     print(f"Connection with {accepted_username} closed.") 
                 

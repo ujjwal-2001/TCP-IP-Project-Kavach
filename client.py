@@ -73,22 +73,26 @@ except Exception as e:
 # Create a tuple with username and encrypted password
 data_to_send = (username, password)
 
-# Serialize the tuple using pickle
-serialized_data = pickle.dumps(data_to_send)
+try:
+    # Serialize the tuple using pickle
+    serialized_data = pickle.dumps(data_to_send)
 
-# Send the encrypted password to the server
-client_socket.send(serialized_data)
+    # Send the encrypted password to the server
+    client_socket.sendall(serialized_data)
 
-# Receive the authentication result
-response = client_socket.recv(1024).decode()
-if response == "0":
-    client_socket.close()
-    exit("Incorrect username or password...closing...")
-print(response)
+    # Receive the authentication result
+    response = client_socket.recv(1024).decode()
+    if response == "0":
+        client_socket.close()
+        exit("Incorrect username or password...closing...")
+    print(response)
+except Exception as e:
+    print(f"Error while sending authentication data: {e}")
+    exit()
 
 auth_time_end = time.time_ns()
 
-print(f"Authentication time: {(auth_time_end-auth_time_start)/1000000} ms")
+print(f"Authentication time duration: {(auth_time_end-auth_time_start)/1000000} ms")
 
 signal_stop_event = threading.Event()
 
@@ -97,6 +101,8 @@ def set_keepalive(sock, interval=1, retries=3):
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, interval)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, retries)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval)
+
+train_stop_time = 0
 
 # Function to stop the train
 def stop_train(client_socket):
@@ -113,7 +119,10 @@ def stop_train(client_socket):
 
             # stop = input("Enter 'stop' to stop the train: ")
             if message == "stop":
-                print(f"Stopping the train as signal received at {time.time_ns()/1000000} ms...")
+                global train_stop_time
+                global auth_time_start
+                train_stop_time = (time.time_ns()-auth_time_start)
+                print(f"Stopping the train as signal received at {train_stop_time/1000000} ms...")
                 signal_stop_event.set()
                 # sys.exit(0)
         except:
@@ -144,7 +153,8 @@ try:
         # Send data to the server
         if(not signal_stop_event.is_set()):
             packet_str = str(packet)
-            print(f"Sent: {packet} at {time.time_ns()/1000000} ms")
+            pos_sent_start_time = time.time_ns() - auth_time_start
+            print(f"Sent: {packet} at {(pos_sent_start_time)/1000000} ms")
             client_socket.sendall(packet_str.encode())
             # print(f"Sent: {packet}")
             # Sleep for 1 second before sending the next data
@@ -160,3 +170,5 @@ finally:
     while stopper_thread.is_alive():
         time.sleep(1)
     stopper_thread.join()
+    if train_stop_time != 0:
+        print(f"Time duration from just before sending the position (packet) to receiving stop signal (RTT + server_process_time): {(train_stop_time-pos_sent_start_time)/1000000} ms")
