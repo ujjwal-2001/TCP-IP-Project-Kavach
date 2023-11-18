@@ -169,7 +169,7 @@ while server_close_flag.is_set() == False:
         client_socket.settimeout(1)
 
         # Enabling keepalive for client autoexit
-        set_keepalive(client_socket)
+        # set_keepalive(client_socket)
 
     except socket.timeout:
         continue
