@@ -137,7 +137,10 @@ def handle_client(client_socket):
             if(shouldStop(rcv_buff, accepted_username)):
                         # send message to the train to stop
                         print(f"Stopping the train {accepted_username} as signal received...")
-                        client_socket.sendall(b"stop") 
+                        try:
+                            client_socket.sendall(b"stop") 
+                        except:
+                            break
     client_socket.close()
     print(f"Connection with {accepted_username} closed.") 
                 
