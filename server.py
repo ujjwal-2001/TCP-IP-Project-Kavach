@@ -112,12 +112,28 @@ def shouldStop(rcv_buffer, accepted_username):
                 else:
                     # If the trains are on the same track, check the distance between them
                     if(abs(rcv_buffer[accepted_username].get('posID') - rcv_buffer[other_user].get('posID')) <= 3):
+                        if(rcv_buffer[accepted_username].get('direction') != rcv_buffer[other_user].get('direction')):
+                            return True
+                        else:
+                            if (rcv_buffer[accepted_username].get('direction') == 1):
+                                if(rcv_buffer[accepted_username].get('posID') <= rcv_buffer[other_user].get('posID')):
+                                    return True
+                                else:
+                                    return False
+                            if (rcv_buffer[accepted_username].get('direction') == -1):
+                                if(rcv_buffer[accepted_username].get('posID') >= rcv_buffer[other_user].get('posID')):
+                                    return True
+                                else:
+                                    return False
                         return True
     return False
 
 def handle_client(client_socket):
     authenticated_flag, accepted_username = authenticate(client_socket)
     if(authenticated_flag):
+        # for noting direction of train
+        direction_flag = 0
+        # rcv_buff[accepted_username]["direction"] = direction_flag
         while server_close_flag.is_set() == False:
             # update rec buffer
             # make necessary decision by examining rec_buff data of train of its own thread and other thread
@@ -127,7 +143,19 @@ def handle_client(client_socket):
                 if(len(message) != 0):
                     message_dict = eval(message) # converting the string to a dictionary to access trackID and posID
                     global rcv_buff
-                    rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
+                    if rcv_buff.get(accepted_username) == None:
+                        rcv_buff[accepted_username] = message_dict
+                        rcv_buff[accepted_username]["direction"] = direction_flag
+                    else:
+                        if rcv_buff[accepted_username].get('trackID') == message_dict.get('trackID'):
+                            if rcv_buff[accepted_username].get('posID') > message_dict.get('posID'):
+                                direction_flag = -1 # train is moving in the negative direction
+                            elif rcv_buff[accepted_username].get('posID') < message_dict.get('posID'):
+                                direction_flag = 1 # train is moving in the positive direction
+                            else:
+                                direction_flag = 0 # train is not moving
+                        rcv_buff[accepted_username] = message_dict
+                        rcv_buff[accepted_username]["direction"] = direction_flag
                     print(f"{accepted_username} : {rcv_buff}") # printing for testing purposes
                 if not message:
                     print(f"Client {accepted_username} disconnected due to no keepalive...")
