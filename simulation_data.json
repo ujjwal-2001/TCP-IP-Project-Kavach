@@ -97,19 +97,19 @@
         "trainB_data":[
             {
                 "trackID":"T1",
-                "tagID":7
-            },
-            {
-                "trackID":"T1",
-                "tagID":8
-            },
-            {
-                "trackID":"T1",
                 "tagID":9
             },
             {
                 "trackID":"T1",
                 "tagID":10
+            },
+            {
+                "trackID":"T1",
+                "tagID":11
+            },
+            {
+                "trackID":"T1",
+                "tagID":12
             }
         ]
     },
