@@ -3,37 +3,37 @@
         "trainA_data": [
             {
                 "trackID":"T1",
-                "tagID":1
+                "posID":1
             },
             {
                 "trackID":"T1",
-                "tagID":2
+                "posID":2
             },
             {
                 "trackID":"T1",
-                "tagID":3
+                "posID":3
             },
             {
                 "trackID":"T1",
-                "tagID":4
+                "posID":4
             }
         ],
         "trainB_data":[
             {
                 "trackID":"T2",
-                "tagID":6
+                "posID":6
             },
             {
                 "trackID":"T2",
-                "tagID":5
+                "posID":5
             },
             {
                 "trackID":"T2",
-                "tagID":4
+                "posID":4
             },
             {
                 "trackID":"T2",
-                "tagID":3
+                "posID":3
             }
         ]
     },
@@ -41,37 +41,37 @@
         "trainA_data": [
             {
                 "trackID":"T1",
-                "tagID":1
+                "posID":1
             },
             {
                 "trackID":"T1",
-                "tagID":2
+                "posID":2
             },
             {
                 "trackID":"T1",
-                "tagID":3
+                "posID":3
             },
             {
                 "trackID":"T1",
-                "tagID":4
+                "posID":4
             }
         ],
         "trainB_data":[
             {
                 "trackID":"T1",
-                "tagID":8
+                "posID":8
             },
             {
                 "trackID":"T1",
-                "tagID":7
+                "posID":7
             },
             {
                 "trackID":"T1",
-                "tagID":6
+                "posID":6
             },
             {
                 "trackID":"T1",
-                "tagID":5
+                "posID":5
             }
         ]
     },
@@ -79,37 +79,37 @@
         "trainA_data": [
             {
                 "trackID":"T1",
-                "tagID":5
+                "posID":5
             },
             {
                 "trackID":"T1",
-                "tagID":4
+                "posID":4
             },
             {
                 "trackID":"T1",
-                "tagID":3
+                "posID":3
             },
             {
                 "trackID":"T1",
-                "tagID":2
+                "posID":2
             }
         ],
         "trainB_data":[
             {
                 "trackID":"T1",
-                "tagID":9
+                "posID":9
             },
             {
                 "trackID":"T1",
-                "tagID":10
+                "posID":10
             },
             {
                 "trackID":"T1",
-                "tagID":11
+                "posID":11
             },
             {
                 "trackID":"T1",
-                "tagID":12
+                "posID":12
             }
         ]
     },
@@ -117,37 +117,37 @@
         "trainA_data": [
             {
                 "trackID":"T1",
-                "tagID":5
+                "posID":5
             },
             {
                 "trackID":"T1",
-                "tagID":6
+                "posID":6
             },
             {
                 "trackID":"T1",
-                "tagID":7
+                "posID":7
             },
             {
                 "trackID":"T1",
-                "tagID":8
+                "posID":8
             }
         ],
         "trainB_data":[
             {
                 "trackID":"T1",
-                "tagID":2
+                "posID":2
             },
             {
                 "trackID":"T1",
-                "tagID":3
+                "posID":3
             },
             {
                 "trackID":"T1",
-                "tagID":4
+                "posID":4
             },
             {
                 "trackID":"T1",
-                "tagID":5
+                "posID":5
             }
         ]
     },
@@ -155,37 +155,37 @@
         "trainA_data": [
             {
                 "trackID":"T1",
-                "tagID":5
+                "posID":5
             },
             {
                 "trackID":"T1",
-                "tagID":4
+                "posID":4
             },
             {
                 "trackID":"T1",
-                "tagID":3
+                "posID":3
             },
             {
                 "trackID":"T1",
-                "tagID":2
+                "posID":2
             }
         ],
         "trainB_data":[
             {
                 "trackID":"T1",
-                "tagID":7
+                "posID":7
             },
             {
                 "trackID":"T1",
-                "tagID":8
+                "posID":8
             },
             {
                 "trackID":"T1",
-                "tagID":9
+                "posID":9
             },
             {
                 "trackID":"T1",
-                "tagID":10
+                "posID":10
             }
         ]
     }

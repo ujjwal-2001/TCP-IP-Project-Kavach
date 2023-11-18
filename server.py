@@ -108,7 +108,7 @@ def shouldStop(rcv_buffer):
         if(rcv_buffer["user1"].get('trackID') != rcv_buffer["user2"].get('trackID')):
             return False
         else:
-            if(abs(rcv_buffer["user1"].get('tagID') - rcv_buffer["user2"].get('tagID')) <= 3):
+            if(abs(rcv_buffer["user1"].get('posID') - rcv_buffer["user2"].get('posID')) <= 3):
                 return True 
     return False
 
@@ -122,7 +122,7 @@ def handle_client(client_socket):
             try:
                 message= client_socket.recv(1024).decode() # decoding the data received in string "message"
                 if(len(message) != 0):
-                    message_dict = eval(message) # converting the string to a dictionary to access trackID and tagID
+                    message_dict = eval(message) # converting the string to a dictionary to access trackID and posID
                     global rcv_buff
                     rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
                     print(f"{accepted_username} : {rcv_buff}") # printing for testing purposes
