@@ -158,7 +158,7 @@ try:
             client_socket.sendall(packet_str.encode())
             # print(f"Sent: {packet}")
             # Sleep for 1 second before sending the next data
-            time.sleep(1)
+            signal_stop_event.wait(1)
 except KeyboardInterrupt:
     print("Keyboard Interrupt...closing...")
     signal_stop_event.set()
@@ -168,7 +168,7 @@ except Exception as e:
 finally:
     # signal_stop_event.set()
     while stopper_thread.is_alive():
-        time.sleep(1)
+        signal_stop_event.wait(1)
     stopper_thread.join()
     if train_stop_time != 0:
         print(f"Time duration from just before sending the position (packet) to receiving stop signal (RTT + server_process_time): {(train_stop_time-pos_sent_start_time)/1000000} ms")
