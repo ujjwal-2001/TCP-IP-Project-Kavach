@@ -39,6 +39,7 @@ try:
     password = getpass.getpass("Enter your password: ")
     # Hash the password
     # password = hashlib.md5(password.encode()).hexdigest()
+    auth_time_start = time.time_ns()
     password = hashlib.sha256(password.encode()).hexdigest()
 except:
     exit()
@@ -85,6 +86,10 @@ if response == "0":
     exit("Incorrect username or password...closing...")
 print(response)
 
+auth_time_end = time.time_ns()
+
+print(f"Authentication time: {(auth_time_end-auth_time_start)/1000000} ms")
+
 signal_stop_event = threading.Event()
 
 def set_keepalive(sock, interval=1, retries=3):
@@ -108,7 +113,7 @@ def stop_train(client_socket):
 
             # stop = input("Enter 'stop' to stop the train: ")
             if message == "stop":
-                print("Stopping the train as signal received...")
+                print(f"Stopping the train as signal received at {time.time_ns()/1000000} ms...")
                 signal_stop_event.set()
                 # sys.exit(0)
         except:
@@ -139,8 +144,9 @@ try:
         # Send data to the server
         if(not signal_stop_event.is_set()):
             packet_str = str(packet)
+            print(f"Sent: {packet} at {time.time_ns()/1000000} ms")
             client_socket.sendall(packet_str.encode())
-            print(f"Sent: {packet}")
+            # print(f"Sent: {packet}")
             # Sleep for 1 second before sending the next data
             time.sleep(1)
 except KeyboardInterrupt:
