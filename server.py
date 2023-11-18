@@ -6,6 +6,7 @@ import threading
 import signal
 import pickle
 import ssl
+import hashlib
 
 # Command line interface
 parser = argparse.ArgumentParser(description="TCP server. Usage: python server.py -sIP <server IPv4 address> (default: localhost) -p <port number> (default: 12345)")
@@ -80,7 +81,7 @@ def authenticate(client_socket)->(bool, str):
         received_data = client_socket.recv(4096+1024)
         (username, encrypted_password) = pickle.loads(received_data)
         
-        decrypted_password = encrypted_password
+        decrypted_password = hashlib.sha256(encrypted_password.encode()).hexdigest()
 
         # Check if the received password matches the stored password
         if user_credentials_exist_in_csv("auth_data.csv",username,decrypted_password):

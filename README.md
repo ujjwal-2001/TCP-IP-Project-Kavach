@@ -8,7 +8,7 @@ Course Code: E2 232
 2. Authentication of user for further communication.
 3. Keepalive feature included.
 4. Threading for simultaneous client handling.
-5. SHA256 hashing for password protection.
+5. SHA256 hashing for password protection on both server and client side. This allows less security for stored passwords.
 
 ## Setup
 There are three files:-

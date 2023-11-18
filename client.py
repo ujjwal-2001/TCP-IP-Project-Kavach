@@ -152,5 +152,5 @@ except Exception as e:
 finally:
     # signal_stop_event.set()
     while stopper_thread.is_alive():
-        time.sleep(3)
+        time.sleep(1)
     stopper_thread.join()
