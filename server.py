@@ -126,15 +126,15 @@ def handle_client(client_socket):
                     global rcv_buff
                     rcv_buff[accepted_username] = message_dict # storing the data from the trains in buffer rcv_buff
                     print(f"{accepted_username} : {rcv_buff}") # printing for testing purposes
-                    if(shouldStop(rcv_buff)):
-                        # send message to the train to stop
-                        print(f"Stopping the train {accepted_username} as signal received...")
-                        client_socket.send(b"stop")
                 if not message:
                     print(f"Client {accepted_username} disconnected due to no keepalive...")
                     break
             except:
-                pass 
+                pass
+            if(shouldStop(rcv_buff)):
+                        # send message to the train to stop
+                        print(f"Stopping the train {accepted_username} as signal received...")
+                        client_socket.send(b"stop") 
     client_socket.close()
     print(f"Connection with {accepted_username} closed.") 
                 
