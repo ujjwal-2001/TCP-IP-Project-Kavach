@@ -85,7 +85,7 @@ Dummy username and password
 ```csv
 username   password
 user1      password1
-pser2      password2
+user2      password2
 ```
 
 ### Team Members
