@@ -33,68 +33,73 @@ except ipaddress.AddressValueError as err:
     exit("Closing...")
 
 # Get user input for username and password
-try:
-    username = input("Enter your username: ")
-    # password = input("Enter your password: ")
-    password = getpass.getpass("Enter your password: ")
-    # Hash the password
-    # password = hashlib.md5(password.encode()).hexdigest()
-    auth_time_start = time.time_ns()
-    password = hashlib.sha256(password.encode()).hexdigest()
-except:
-    exit()
+def get_credentials():
+    try:
+        username = input("Enter your username: ")
+        # password = input("Enter your password: ")
+        password = getpass.getpass("Enter your password: ")
+        # Hash the password
+        # password = hashlib.md5(password.encode()).hexdigest()
+        return (username, password)
+    except:
+        exit(f"Error while getting user input. Closing...")
 
 # Define server address and port
 server_address = (server_ip, port)
-# Create a socket
-try:
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Wrap the socket in an SSL context
-    ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-    ssl_context.load_verify_locations('certificates/ca-cert.pem')  # Certificate Authority's public key
-
-    ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
-    ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
-
-    ssl_socket = ssl_context.wrap_socket(client_socket, do_handshake_on_connect=True, server_hostname= "server")
-    # ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
-    client_socket = ssl_socket
-except Exception as e:
-    exit(f"Error creating socket: {e}")
-
-# Connect to the server
-try:
-    client_socket.connect(server_address)
-except Exception as e:
-    print(f"Error while connecting: {e}")
-    exit()
-
-# Create a tuple with username and encrypted password
-data_to_send = (username, password)
-
-try:
-    # Serialize the tuple using pickle
-    serialized_data = pickle.dumps(data_to_send)
-
-    # Send the encrypted password to the server
-    client_socket.sendall(serialized_data)
-
-    # Receive the authentication result
-    response = client_socket.recv(1024).decode()
-    if response == "0":
-        client_socket.close()
-        exit("Incorrect username or password...closing...")
-    print(response)
-except Exception as e:
-    print(f"Error while sending authentication data: {e}")
-    exit()
-
-auth_time_end = time.time_ns()
-
-print(f"Authentication time duration: {(auth_time_end-auth_time_start)/1000000} ms")
 
 signal_stop_event = threading.Event()
+server_failure_event = threading.Event()
+
+client_socket = None
+
+# Connect to the server
+def connect_to_server():
+    # Create a socket
+    global client_socket
+    try:
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Wrap the socket in an SSL context
+        ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        ssl_context.load_verify_locations('certificates/ca-cert.pem')  # Certificate Authority's public key
+
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+        ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+
+        ssl_socket = ssl_context.wrap_socket(client_socket, do_handshake_on_connect=True, server_hostname= "server")
+        # ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
+        client_socket = ssl_socket
+    except Exception as e:
+        exit(f"Error creating socket: {e}")
+    try:
+        if not signal_stop_event.is_set():
+            client_socket.settimeout(0.05)
+            client_socket.connect(server_address)
+        return True
+    except Exception as e:
+        print(f"Error while connecting: {e}")
+        # exit()
+
+def authenticate(username, password):
+    try:
+        # Create a tuple with username and encrypted password
+        data_to_send = (username, password)
+        # Serialize the tuple using pickle
+        serialized_data = pickle.dumps(data_to_send)
+
+        # Send the encrypted password to the server
+        client_socket.sendall(serialized_data)
+
+        # Receive the authentication result
+        response = client_socket.recv(1024).decode()
+        if response == "0":
+            client_socket.close()
+            exit("Incorrect username or password...closing...")
+        print(response)
+        return True
+    except Exception as e:
+        print(f"Error while sending authentication data: {e}")
+        return False
 
 def set_keepalive(sock, interval=1, retries=3):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -103,24 +108,25 @@ def set_keepalive(sock, interval=1, retries=3):
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval)
 
 train_stop_time = 0
-
+auth_time_start = 0
 # Function to stop the train
 def stop_train(client_socket):
     # Keepalive timer check
     client_socket.settimeout(2)
     set_keepalive(client_socket)
-    while signal_stop_event.is_set() == False:
+    while signal_stop_event.is_set() == False and server_failure_event.is_set() == False:
         try:
             message = client_socket.recv(1024).decode()
 
             if not message:
-                print("Server not reachable (keepalive failure). Closing...")
+                print("Server not reachable (keepalive failure). Retrying server connection...")
+                server_failure_event.set()
                 break
 
             # stop = input("Enter 'stop' to stop the train: ")
             if message == "stop":
-                global train_stop_time
                 global auth_time_start
+                global train_stop_time
                 train_stop_time = (time.time_ns()-auth_time_start)
                 print(f"Stopping the train as signal received at {train_stop_time/1000000} ms...")
                 signal_stop_event.set()
@@ -128,15 +134,15 @@ def stop_train(client_socket):
         except:
             continue
     client_socket.close()
-
-stopper_thread = threading.Thread(target=stop_train, args=(client_socket,))
-stopper_thread.start() 
+    return False
 
 # Loading Simulation Data
-data_file = open("simulation_data.json")
-sim_data = json.load(data_file)
-train_data= "trainB_data" if(trainID=="B") else "trainA_data"
-packets_data_to_send = sim_data["sim"+str(sim)][train_data]
+def load_simulation_data(file_name = "simulation_data.json"):
+    data_file = open(file_name, "r")
+    sim_data = json.load(data_file)
+    train_data= "trainB_data" if(trainID=="B") else "trainA_data"
+    packets_data_to_send = sim_data["sim"+str(sim)][train_data]
+    return packets_data_to_send
 
 # For closing the client gracefully in case of Keyboard interrupt
 def handle_interrupt(signum, frame):
@@ -147,28 +153,66 @@ def handle_interrupt(signum, frame):
 
 signal.signal(signal.SIGINT, handle_interrupt)
 
+pos_sent_start_time = 0
+
 # Sending packets with 1 sec gap
-try:
-    for packet in packets_data_to_send:
-        # Send data to the server
-        if(not signal_stop_event.is_set()):
-            packet_str = str(packet)
-            pos_sent_start_time = time.time_ns() - auth_time_start
-            print(f"Sent: {packet} at {(pos_sent_start_time)/1000000} ms")
-            client_socket.sendall(packet_str.encode())
-            # print(f"Sent: {packet}")
-            # Sleep for 1 second before sending the next data
+def send_packets(packets_data_to_send, auth_time_start):    
+    try:
+        for packet in packets_data_to_send:
+            # Send data to the server
+            if(not signal_stop_event.is_set()):
+                packet_str = str(packet)
+                global pos_sent_start_time
+                pos_sent_start_time = time.time_ns() - auth_time_start
+                print(f"Sent: {packet} at {(pos_sent_start_time)/1000000} ms")
+                client_socket.sendall(packet_str.encode())
+                # print(f"Sent: {packet}")
+                # Sleep for 1 second before sending the next data
+                signal_stop_event.wait(1)
+        return True
+    except KeyboardInterrupt:
+        print("Keyboard Interrupt...closing...")
+        signal_stop_event.set()
+    except Exception as e:
+        print(f"Error while sending data: {e}")
+        server_failure_event.set()
+        # signal_stop_event.set()
+
+        
+
+
+
+if __name__ == "__main__":
+    # Get the username and password
+    username, password = get_credentials()
+    
+    password = hashlib.sha256(password.encode()).hexdigest()
+    while not signal_stop_event.is_set():
+        auth_time_start = time.time_ns()
+        if connect_to_server() is not True:
+            print("Retrying server connection...")
+            continue
+        if authenticate(username, password) is not True:
+            print("Retrying authentication...")
+            continue
+        auth_time_end = time.time_ns()
+
+        print(f"Authentication time duration: {(auth_time_end-auth_time_start)/1000000} ms")
+
+        # Create a thread to stop the train if stop signal is received
+        train_stop_time = 0
+        global stopper_thread
+        stopper_thread = threading.Thread(target=stop_train, args=(client_socket,))
+        stopper_thread.start() 
+        packets_data_to_send = load_simulation_data()
+        send_packets(packets_data_to_send, auth_time_start)
+        # signal_stop_event.set()
+        while stopper_thread.is_alive() and server_failure_event.is_set() == False:
             signal_stop_event.wait(1)
-except KeyboardInterrupt:
-    print("Keyboard Interrupt...closing...")
-    signal_stop_event.set()
-except Exception as e:
-    print(f"Error while sending data: {e}")
-    signal_stop_event.set()
-finally:
-    # signal_stop_event.set()
-    while stopper_thread.is_alive():
-        signal_stop_event.wait(1)
-    stopper_thread.join()
-    if train_stop_time != 0:
-        print(f"Time duration from just before sending the position (packet) to receiving stop signal (RTT + server_process_time): {(train_stop_time-pos_sent_start_time)/1000000} ms")
+        stopper_thread.join()
+        if server_failure_event.is_set()==True and signal_stop_event.is_set() == False:
+            server_failure_event.clear()
+            print("Server not reachable. Retrying...")
+            continue
+        if train_stop_time != 0:
+            print(f"Time duration from just before sending the position (packet) to receiving stop signal (RTT + server_process_time): {(train_stop_time-pos_sent_start_time)/1000000} ms")
