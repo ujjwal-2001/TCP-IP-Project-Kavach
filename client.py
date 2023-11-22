@@ -41,8 +41,10 @@ def get_credentials():
         # Hash the password
         # password = hashlib.md5(password.encode()).hexdigest()
         return (username, password)
-    except:
+    except KeyboardInterrupt:
         exit(f"Error while getting user input. Closing...")
+    except Exception as e:
+        exit(f"Error while getting user input: {e}")
 
 # Define server address and port
 server_address = (server_ip, port)
@@ -73,8 +75,10 @@ def connect_to_server():
         exit(f"Error creating socket: {e}")
     try:
         if not signal_stop_event.is_set():
-            client_socket.settimeout(0.05)
+            # 0.4 is emperical number and may be changed for weak connections
+            client_socket.settimeout(0.4)
             client_socket.connect(server_address)
+            client_socket.settimeout(None)
         return True
     except Exception as e:
         print(f"Error while connecting: {e}")
