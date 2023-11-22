@@ -184,7 +184,7 @@ def handle_interrupt(signum, frame):
 
 signal.signal(signal.SIGINT, handle_interrupt)
 
-server_socket.settimeout(2)
+server_socket.settimeout(1)
 
 def set_keepalive(sock, interval=1, retries=3):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -200,7 +200,7 @@ while server_close_flag.is_set() == False:
         client_socket, client_address = server_socket.accept()
 
         # The below timeout is to ensure that the thread closes too because recv is a blocking call
-        client_socket.settimeout(2)
+        client_socket.settimeout(1)
 
         # Enabling keepalive for client autoexit
         # set_keepalive(client_socket)

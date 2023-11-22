@@ -107,7 +107,7 @@ def authenticate(username, password):
         print(f"Error while sending authentication data: {e}")
         return False
 
-def set_keepalive(sock, interval=1.5, retries=3):
+def set_keepalive(sock, interval=1, retries=3):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, interval)
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, retries)
