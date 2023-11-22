@@ -6,11 +6,11 @@ Course Code: E2 232
 
 This is a train collision avoidance system. This project deals with very specific situation with following constrains/assumptions:-
 1. Two Trains are moving on the same track with a maximum speed of 100 Km/hr or 27.77 m/s.
-2. RFID tags are kept every km.
+2. RFID tags are kept every 1 km.
 3. Both the trains have RFID tag readers with a range of 40m approx.
 4. RFID tags can store two things (in user data section): position ID and Track ID.
 5. Track ID inform on which track the tag is present.
-6. Position ID infrom about the posion of the train on the given track.
+6. Position ID infrom about the posion of the train on the given track. ( tags are placed in increasing order of Position ID in one direction of the track)
 7. Hosts are Rpi4. 
 
 ## Project Features
@@ -21,11 +21,11 @@ This is a train collision avoidance system. This project deals with very specifi
 3. **Authentication of user for further communication**: Valid host must also know the user-name and password.
 4. **Keepalive feature included**: Clients will be informed if server is down.
 5. **Threading for simultaneous client handling**.
-6. **SHA256 hashing**: Password protection on both server and client side. This allows less security for stored passwords.
+6. **SHA256 hashing**: Password protection on both server and client side. This allows more security for stored passwords.
 7. **Latency**:
      - Authentication: 300 - 350 ms 
      - Receiving STOP signal (RTT+processing): 5 ms
-9. **Realibility**
+9. **Reliability**
     - TLS performs retransmission in case of a packet loss
     - For the speed of 27m/s and reader range of 40m, client have approxmatily 2 sec for whole process (reading tag + procession infromation + sending packet + receiving of packet by server + processing infromation + sending a reply + receiveing the reply + taking action accordingly) which is more then enough (check latency).
     - Trains receive stop signal way before breaking distance (minimum distance before which trains need to apply breaks to avoide head on collision). If a train misses a tag it will still have another change.
