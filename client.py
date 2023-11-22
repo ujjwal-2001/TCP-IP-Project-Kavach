@@ -72,7 +72,8 @@ def connect_to_server():
         # ssl_socket = ssl.wrap_socket(client_socket, keyfile=None, certfile=None, server_side=False, cert_reqs=ssl.CERT_NONE, ssl_version=ssl.PROTOCOL_TLSv1_2)
         client_socket = ssl_socket
     except Exception as e:
-        exit(f"Error creating socket: {e}")
+        # print(f"Error creating socket: {e}")
+        return False
     try:
         if not signal_stop_event.is_set():
             # 0.4 is emperical number and may be changed for weak connections
@@ -81,7 +82,8 @@ def connect_to_server():
             client_socket.settimeout(None)
         return True
     except Exception as e:
-        print(f"Error while connecting: {e}")
+        # print(f"Error while connecting: {e}")
+        return False
         # exit()
 
 def authenticate(username, password):
@@ -123,7 +125,7 @@ def stop_train(client_socket):
             message = client_socket.recv(1024).decode()
 
             if not message:
-                print("Server not reachable (keepalive failure). Retrying server connection...")
+                # print("Server not reachable (keepalive failure). Retrying server connection...")
                 server_failure_event.set()
                 break
 
@@ -178,7 +180,7 @@ def send_packets(packets_data_to_send, auth_time_start):
         print("Keyboard Interrupt...closing...")
         signal_stop_event.set()
     except Exception as e:
-        print(f"Error while sending data: {e}")
+        # print(f"Error while sending data: {e}")
         server_failure_event.set()
         # signal_stop_event.set()
 
@@ -191,11 +193,16 @@ if __name__ == "__main__":
     username, password = get_credentials()
     
     password = hashlib.sha256(password.encode()).hexdigest()
+    first_time_flag = True
     while not signal_stop_event.is_set():
         auth_time_start = time.time_ns()
         if connect_to_server() is not True:
-            print("Retrying server connection...")
+            # print("WARNING: Retrying server connection...")
+            if first_time_flag is True:
+                print("WARNING: Server is down. Exiting...")
+                break
             continue
+        first_time_flag = False
         if authenticate(username, password) is not True:
             print("Retrying authentication...")
             continue
@@ -216,7 +223,7 @@ if __name__ == "__main__":
         stopper_thread.join()
         if server_failure_event.is_set()==True and signal_stop_event.is_set() == False:
             server_failure_event.clear()
-            print("Server not reachable. Retrying...")
+            print("WARNING: Server not reachable. Retrying...Stop train if needed...")
             continue
         if train_stop_time != 0:
             print(f"Time duration from just before sending the position (packet) to receiving stop signal (RTT + server_process_time): {(train_stop_time-pos_sent_start_time)/1000000} ms")
