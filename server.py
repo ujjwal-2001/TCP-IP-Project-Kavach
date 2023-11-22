@@ -46,6 +46,7 @@ ssl_socket = ssl_context.wrap_socket(server_socket, server_side=True, do_handsha
 # context.load_cert_chain('server.crt', 'server_private.key')
 # ssl_socket = context.wrap_socket(server_socket, server_side=True)
 server_socket = ssl_socket
+server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 # Trying to bind the socket to the address and port
 try:
