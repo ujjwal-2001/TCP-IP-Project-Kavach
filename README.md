@@ -7,11 +7,13 @@ Course Code: E2 232
 This is a train collision avoidance system. This project deals with very specific situation with following constrains/assumptions:-
 1. Two Trains are moving on the same track with a maximum speed of 100 Km/hr or 27.77 m/s.
 2. RFID tags are kept every 1 km.
-3. Both the trains have RFID tag readers with a range of 40m approx.
-4. RFID tags can store two things (in user data section): position ID and Track ID.
-5. Track ID inform on which track the tag is present.
-6. Position ID infrom about the posion of the train on the given track. ( tags are placed in increasing order of Position ID in one direction of the track)
-7. Hosts are Rpi4. 
+     - Every train need approx 400m to stop (for deceleration of 0.1*g)
+     - To prevent head-on collision train must apply break when they are 800m apart which is 1km roughly.
+4. Both the trains have RFID tag readers with a range of 40m approx.
+5. RFID tags can store two things (in user data section): position ID and Track ID.
+6. Track ID inform on which track the tag is present.
+7. Position ID infrom about the posion of the train on the given track. ( tags are placed in increasing order of Position ID in one direction of the track)
+8. Hosts are Rpi4. 
 
 ## Project Features
 
@@ -27,7 +29,7 @@ This is a train collision avoidance system. This project deals with very specifi
      - Receiving STOP signal (RTT+processing): 5 ms
 9. **Reliability**
     - TLS performs retransmission in case of a packet loss
-    - For the speed of 27m/s and reader range of 40m, clients(trains) have approximately 2 sec for whole process (reading tag + procession infromation + sending packet + receiving of packet by server + processing infromation + sending a reply + receiveing the reply + taking action accordingly) which is more then enough (check latency).
+    - Latency is low, therefore we have enough time for retransmission.
     - Trains receive stop signal way before breaking distance (minimum distance before which trains need to apply breaks to avoide head on collision). If a train misses a tag it will still have another chance.
 
 ## Setup
@@ -58,21 +60,21 @@ We can simulate four scenarios, and every scenario has its own simulation number
 | 3 | Train A and Train B are moving in same direction on same track |
 
 ### Example for running a simulation
-In this example we are running simulation 1 where server IP is 10.0.0.1
+In this example we are running simulation 1 where server IP is 10.114.240.240
 
 Train A
 ```python
-python3 client.py -sIP 10.0.0.1 -p 3000 -train A -sim 1
+python3 client.py -sIP 10.114.240.240 -p 3000 -train A -sim 1
 ```
 
 Train B
 ```python
-python3 client.py -sIP 10.0.0.1 -p 3000 -train B -sim 1
+python3 client.py -sIP 10.114.240.240 -p 3000 -train B -sim 1
 ```
 
 Server
 ```python
-python3 server.py -sIP 10.0.0.1
+python3 server.py -p 3000
 ```
 
 For more information about the option run
@@ -83,12 +85,13 @@ python3 server.py -h
 
 Dummy username and password
 ```csv
-username   password
-user1      password1
-user2      password2
+username,password
+user1,password1
+user2,password2
 ```
 
 ### Team Members
-1. [UJJWAL CHAUDHARY, M. Tech. ESE'25](https://www.linkedin.com/in/ujjwal-chaudhary-4436701aa/)
-2. [R. GUHAN,         M. Tech. ESE'25](https://www.linkedin.com/in/guhan-rajasekar-996a95185/)
-3. [SUNDARESAN G.,    M. Tech. CDS'24](https://www.linkedin.com/in/sundaresan-g-614956285/)
+1. [SUNDARESAN G.,    M. Tech. CDS'24](https://www.linkedin.com/in/sundaresan-g-614956285/)
+2. [UJJWAL CHAUDHARY, M. Tech. ESE'25](https://www.linkedin.com/in/ujjwal-chaudhary-4436701aa/)
+3. [R. GUHAN,         M. Tech. ESE'25](https://www.linkedin.com/in/guhan-rajasekar-996a95185/)
+
