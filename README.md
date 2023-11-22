@@ -21,14 +21,14 @@ This is a train collision avoidance system. This project deals with very specifi
 3. **Authentication of user for further communication**: Valid host must also know the user-name and password.
 4. **Keepalive feature included**: Clients will be informed if server is down.
 5. **Threading for simultaneous client handling**.
-6. **SHA256 hashing**: Password protection on both server and client side. This allows more security for stored passwords.
+6. **SHA256 hashing**: Password protection on both server and client side. This provides more security for stored passwords.
 7. **Latency**:
      - Authentication: 300 - 350 ms 
      - Receiving STOP signal (RTT+processing): 5 ms
 9. **Reliability**
     - TLS performs retransmission in case of a packet loss
-    - For the speed of 27m/s and reader range of 40m, client have approxmatily 2 sec for whole process (reading tag + procession infromation + sending packet + receiving of packet by server + processing infromation + sending a reply + receiveing the reply + taking action accordingly) which is more then enough (check latency).
-    - Trains receive stop signal way before breaking distance (minimum distance before which trains need to apply breaks to avoide head on collision). If a train misses a tag it will still have another change.
+    - For the speed of 27m/s and reader range of 40m, clients(trains) have approximately 2 sec for whole process (reading tag + procession infromation + sending packet + receiving of packet by server + processing infromation + sending a reply + receiveing the reply + taking action accordingly) which is more then enough (check latency).
+    - Trains receive stop signal way before breaking distance (minimum distance before which trains need to apply breaks to avoide head on collision). If a train misses a tag it will still have another chance.
 
 ## Setup
 Brief info about the files:-
